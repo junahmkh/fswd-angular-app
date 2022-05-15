@@ -26,8 +26,9 @@ export class DishdetailComponent implements OnInit {
 
   commentForm!: FormGroup;
   comment!: Comment;
+  dishcopy!: Dish;
 
-  @ViewChild('fform') commentFormDirective;
+  @ViewChild('cform') commentFormDirective;
 
   formErrors = {
     'comment': '',
@@ -61,7 +62,7 @@ export class DishdetailComponent implements OnInit {
   ngOnInit(): void {
     this.dishservice.getDishIds().subscribe(dishIds => this.dishIds = dishIds);
     this.route.params.pipe(switchMap((params: Params) => this.dishservice.getDish(params['id'])))
-    .subscribe({next: dish => { this.dish = dish; this.setPrevNext(dish.id); },
+    .subscribe({next: dish => { this.dish = dish; this.dishcopy = dish, this.setPrevNext(dish.id); },
      error: errmess => this.errMess = <any>errmess});
   }
   setPrevNext(dishId: string) {
@@ -108,12 +109,28 @@ export class DishdetailComponent implements OnInit {
   onInputChange(event: MatSliderChange) {
     console.log(event.value);
   }
+  dishnull(dish:Dish){
+    dish.id = '';
+    dish.name = '';
+    dish.image = '';
+    dish.category = '';
+    dish.featured = false;				//either this
+    dish.label = '';				//or this
+    dish.price = '';				// its because of strict type def of javascript
+    dish.description = '';
+    dish.comments = [];
+  };
 
   onSubmit() {
     this.comment = this.commentForm.value;
     this.comment.date = new Date().toISOString();
     console.log(this.comment);
-    this.dish.comments.push(this.comment);
+    this.dishcopy.comments.push(this.comment);
+    this.dishservice.putDish(this.dishcopy)
+      .subscribe({ next: dish=>{
+        this.dish = dish; this.dishcopy = dish;
+      },
+      error: errmess => {this.dishnull(this.dish); this.dishnull(this.dishcopy); this.errMess = <any>errmess; }});
     this.commentForm.reset({
       rating: 5,
       comment: '',
