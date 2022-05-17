@@ -151,6 +151,4 @@ export class DishdetailComponent implements OnInit {
     });
     this.commentFormDirective.resetForm();
   }
-
-
 }

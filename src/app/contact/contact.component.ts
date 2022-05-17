@@ -1,7 +1,11 @@
-import { Component, OnInit, ViewChild} from '@angular/core';
+import { Component, OnInit, ViewChild, Inject} from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Feedback, ContactType } from '../shared/feedback';
-import { flyInOut } from '../animations/app.animation';
+import { visibility, flyInOut, expand } from '../animations/app.animation';
+
+import { FeedbackService } from '../services/feedback.service';
+
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-contact',
@@ -12,7 +16,9 @@ import { flyInOut } from '../animations/app.animation';
     'style': 'display: block;'
     },
     animations: [
-      flyInOut()
+      visibility(),
+      flyInOut(),
+      expand()
     ]
 })
 export class ContactComponent implements OnInit {
@@ -20,7 +26,11 @@ export class ContactComponent implements OnInit {
   feedbackForm!: FormGroup;
   feedback!: Feedback;
   contactType = ContactType;
-  
+  errMess!: string;
+  showFeedbackForm = true;
+  showSubmittedFeedback: boolean = false;
+  showLoading!: boolean;
+  feedbackcopy!:Feedback;
   @ViewChild('fform') feedbackFormDirective;
 
   formErrors = {
@@ -56,11 +66,17 @@ export class ContactComponent implements OnInit {
     },
   };
 
-  constructor(private fb: FormBuilder) {
+  constructor(private feedbackService: FeedbackService,
+    private route: ActivatedRoute,
+    private fb: FormBuilder,
+    @Inject('BaseURL') public BaseURL) {
     this.createForm();
   }
 
+  feedbackIds!: string[];
+
   ngOnInit(): void {
+    this.feedbackService.getFeedbackIds().subscribe(feedbackIds => this.feedbackIds = feedbackIds);
   }
 
   createForm() {
@@ -100,9 +116,38 @@ export class ContactComponent implements OnInit {
     }
   }
 
+  feedbacknull(feedback:Feedback){
+    feedback.id! = '';
+    feedback.firstname! = '';
+    feedback.lastname! = '';
+    feedback.telnum!= null;
+    feedback.email!= null;
+    feedback.agree!=null;
+    feedback.contacttype!=null;
+    feedback.message!= null;
+  };
+
+  
+ 
   onSubmit() {
     this.feedback = this.feedbackForm.value;
     console.log(this.feedback);
+    this.feedbackcopy = this.feedback;
+    this.showLoading = true;
+    this.showSubmittedFeedback = false;
+    this.showFeedbackForm = false;
+    this.feedbackService.postFeedback(this.feedback)
+    .subscribe({ next: feedback=>{
+      this.showLoading = false;
+      this.showSubmittedFeedback = true
+      this.feedbackcopy = feedback;
+      setTimeout(()=>{
+        this.showSubmittedFeedback = false;
+        this.showFeedbackForm = true;
+      }, 5000);
+    },
+    error: errmess => { this.errMess = <any>errmess; }}, 
+    );
     this.feedbackForm.reset({
       firstname: '',
       lastname: '',
